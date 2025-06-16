@@ -9,3 +9,4 @@ download and install NET 2.0 on XP
 https://download.lenovo.com/ibmdl/pub/pc/pccbbs/thinkvantage_en/dotnetfx.exe
 
 no color edit in program, have to edit individually before compile as desired.
+https://www.youtube.com/watch?v=0zgq5aSUs00
