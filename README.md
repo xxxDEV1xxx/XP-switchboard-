@@ -17,4 +17,4 @@ in XP, create a batch file with the following (adjust for actual file to be run,
 
 start C:\"Program Files\Starcraft\Starcraft.exe"
 
-then place in a directory that doesnt have any spaces in it or its sub directories(also some games need the bat to be placed in the same folder as the exe to load config files) , then place the .bat location in the switchboard. 
+then place in a directory that doesnt have any spaces in it or its sub directories , then place the .bat location in the switchboard. 
