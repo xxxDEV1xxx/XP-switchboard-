@@ -10,3 +10,9 @@ https://download.lenovo.com/ibmdl/pub/pc/pccbbs/thinkvantage_en/dotnetfx.exe
 
 no color edit in program, have to edit individually before compile as desired.
 https://www.youtube.com/watch?v=0zgq5aSUs00
+
+in XP, create a batch file with the following (adjust for actual file to be run, notice spacing of " )
+@echo off
+start C:\"Program Files\Starcraft\Starcraft.exe"
+
+then place in a directory that doesnt have any spaces in it or its sub directories, then place the .bat location in the switchboard. 
