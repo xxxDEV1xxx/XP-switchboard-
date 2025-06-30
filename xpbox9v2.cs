@@ -43,8 +43,12 @@ namespace ButtonCommandBoard
         private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr GetModuleHandle(string lpModuleName);
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern short GetKeyState(int nVirtKey);
         private const int WH_KEYBOARD_LL = 13;
         private const int WM_KEYDOWN = 0x0100;
+        private const int VK_LSHIFT = 0xA0;
+        private const int VK_RSHIFT = 0xA1;
 
         public CommandBoard()
         {
@@ -85,7 +89,9 @@ namespace ButtonCommandBoard
                 int vkCode = Marshal.ReadInt32(lParam);
                 Keys key = (Keys)vkCode;
 
-                if (key == Keys.Escape)
+                // Check for Shift + Escape
+                bool shiftPressed = (GetKeyState(VK_LSHIFT) & 0x8000) != 0 || (GetKeyState(VK_RSHIFT) & 0x8000) != 0;
+                if (key == Keys.Escape && shiftPressed)
                 {
                     if (this.WindowState == FormWindowState.Maximized)
                     {
