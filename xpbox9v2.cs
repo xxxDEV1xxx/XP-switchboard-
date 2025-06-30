@@ -26,6 +26,7 @@ namespace ButtonCommandBoard
         private LowLevelKeyboardProc keyboardProc;
         private int currentPage = 1;
         private const int MaxPages = 10;
+        private string[] pageDescriptions = new string[MaxPages]; // Store page descriptions
         private readonly Color ButtonBackColor = Color.FromArgb(11, 16, 150);
         private readonly Color ButtonForeColor = Color.White;
         private readonly Color TextBoxForeColor = Color.FromArgb(22, 181, 4);
@@ -62,6 +63,7 @@ namespace ButtonCommandBoard
             InitializeControls();
             LoadCommands();
             LoadDescriptions();
+            UpdatePage(); // Update display after loading all data
 
             // Start in full-screen mode
             this.WindowState = FormWindowState.Maximized;
@@ -293,20 +295,27 @@ namespace ButtonCommandBoard
         private void UpdatePage()
         {
             pageNumberLabel.Text = Convert.ToString(currentPage);
-            pageDescriptionTextBox.Text = "Page " + Convert.ToString(currentPage) + " Description";
-
             int startIndex = (currentPage - 1) * 16;
+
+            // Update displayed controls with correct global indices
             for (int i = 0; i < 16; i++)
             {
-                int buttonNumber = startIndex + i + 1;
-                textBoxLabels[i].Text = Convert.ToString(buttonNumber);
-                commandTextBoxes[i].Text = "ipconfig /all";
-                descriptionTextBoxes[i].Text = Convert.ToString(buttonNumber);
-                UpdateButtonTextFromDescription(i);
+                int globalIndex = startIndex + i;
+                textBoxLabels[i].Text = Convert.ToString(globalIndex + 1);
+                // Copy data from global to displayed textboxes
+                if (globalIndex < 160)
+                {
+                    commandTextBoxes[globalIndex].Text = commandTextBoxes[i].Text;
+                    descriptionTextBoxes[globalIndex].Text = descriptionTextBoxes[i].Text;
+                    commandTextBoxes[i].Text = commandTextBoxes[globalIndex].Text;
+                    descriptionTextBoxes[i].Text = descriptionTextBoxes[globalIndex].Text;
+                    UpdateButtonTextFromDescription(globalIndex);
+                }
             }
 
-            LoadCommands();
-            LoadDescriptions();
+            // Set page description
+            pageDescriptionTextBox.Text = pageDescriptions[currentPage - 1] ?? ("Page " + Convert.ToString(currentPage) + " Description");
+
             LayoutControls();
         }
 
@@ -314,30 +323,22 @@ namespace ButtonCommandBoard
         {
             try
             {
-                string[] allCommands = File.Exists(commandsFile) ? File.ReadAllLines(commandsFile) : new string[MaxPages * 16];
-                string[] allDescriptions = File.Exists(descriptionsFile) ? File.ReadAllLines(descriptionsFile) : new string[MaxPages * 16 + MaxPages];
+                string[] allCommands = new string[160];
+                string[] allDescriptions = new string[160 + MaxPages];
 
-                if (allCommands.Length < MaxPages * 16)
+                // Save all commands and descriptions from textboxes
+                for (int i = 0; i < 160; i++)
                 {
-                    string[] temp = new string[MaxPages * 16];
-                    Array.Copy(allCommands, temp, allCommands.Length);
-                    allCommands = temp;
-                }
-                if (allDescriptions.Length < MaxPages * 16 + MaxPages)
-                {
-                    string[] temp = new string[MaxPages * 16 + MaxPages];
-                    Array.Copy(allDescriptions, temp, allDescriptions.Length);
-                    allDescriptions = temp;
+                    allCommands[i] = commandTextBoxes[i].Text;
+                    allDescriptions[i] = descriptionTextBoxes[i].Text;
                 }
 
-                int startIndex = (currentPage - 1) * 16;
-                for (int i = 0; i < 16; i++)
+                // Save page descriptions
+                for (int i = 0; i < MaxPages; i++)
                 {
-                    int index = startIndex + i;
-                    allCommands[index] = commandTextBoxes[i].Text;
-                    allDescriptions[index] = descriptionTextBoxes[i].Text;
+                    allDescriptions[160 + i] = pageDescriptions[i] ?? ("Page " + Convert.ToString(i + 1) + " Description");
                 }
-                allDescriptions[MaxPages * 16 + currentPage - 1] = pageDescriptionTextBox.Text;
+                pageDescriptions[currentPage - 1] = pageDescriptionTextBox.Text;
 
                 File.WriteAllLines(commandsFile, allCommands);
                 File.WriteAllLines(descriptionsFile, allDescriptions);
@@ -354,7 +355,7 @@ namespace ButtonCommandBoard
             {
                 if (File.Exists(resetFlagFile) || !File.Exists(commandsFile))
                 {
-                    for (int i = 0; i < 16; i++)
+                    for (int i = 0; i < 160; i++)
                     {
                         commandTextBoxes[i].Text = "ipconfig /all";
                     }
@@ -366,19 +367,19 @@ namespace ButtonCommandBoard
                 }
 
                 string[] commands = File.ReadAllLines(commandsFile);
-                int startIndex = (currentPage - 1) * 16;
-                for (int i = 0; i < 16; i++)
+                for (int i = 0; i < 160; i++)
                 {
-                    int index = startIndex + i;
-                    if (index < commands.Length)
-                    {
-                        commandTextBoxes[i].Text = commands[index];
-                    }
+                    commandTextBoxes[i].Text = (i < commands.Length && !string.IsNullOrEmpty(commands[i]))
+                        ? commands[i]
+                        : "ipconfig /all";
                 }
             }
             catch
             {
-                // Silent fail
+                for (int i = 0; i < 160; i++)
+                {
+                    commandTextBoxes[i].Text = "ipconfig /all";
+                }
             }
         }
 
@@ -389,43 +390,46 @@ namespace ButtonCommandBoard
                 if (File.Exists(descriptionsFile))
                 {
                     string[] descriptions = File.ReadAllLines(descriptionsFile);
-                    int startIndex = (currentPage - 1) * 16;
-                    for (int i = 0; i < 16; i++)
+                    // Load button descriptions (lines 1–160)
+                    for (int i = 0; i < 160; i++)
                     {
-                        int index = startIndex + i;
-                        if (index < descriptions.Length && !string.IsNullOrEmpty(descriptions[index]))
-                        {
-                            descriptionTextBoxes[i].Text = descriptions[index];
-                        }
-                        else
-                        {
-                            descriptionTextBoxes[i].Text = Convert.ToString(index + 1);
-                        }
+                        descriptionTextBoxes[i].Text = (i < descriptions.Length && !string.IsNullOrEmpty(descriptions[i]))
+                            ? descriptions[i]
+                            : Convert.ToString(i + 1);
                         UpdateButtonTextFromDescription(i);
                     }
-                    int pageDescIndex = MaxPages * 16 + currentPage - 1;
-                    if (pageDescIndex < descriptions.Length)
+                    // Load page descriptions (lines 161–170)
+                    for (int i = 0; i < MaxPages; i++)
                     {
-                        pageDescriptionTextBox.Text = descriptions[pageDescIndex];
+                        int fileIndex = 160 + i;
+                        pageDescriptions[i] = (fileIndex < descriptions.Length && !string.IsNullOrEmpty(descriptions[fileIndex]))
+                            ? descriptions[fileIndex]
+                            : "Page " + Convert.ToString(i + 1) + " Description";
                     }
                 }
                 else
                 {
-                    int startIndex = (currentPage - 1) * 16;
-                    for (int i = 0; i < 16; i++)
+                    for (int i = 0; i < 160; i++)
                     {
-                        descriptionTextBoxes[i].Text = Convert.ToString(startIndex + i + 1);
+                        descriptionTextBoxes[i].Text = Convert.ToString(i + 1);
                         UpdateButtonTextFromDescription(i);
+                    }
+                    for (int i = 0; i < MaxPages; i++)
+                    {
+                        pageDescriptions[i] = "Page " + Convert.ToString(i + 1) + " Description";
                     }
                 }
             }
             catch
             {
-                int startIndex = (currentPage - 1) * 16;
-                for (int i = 0; i < 16; i++)
+                for (int i = 0; i < 160; i++)
                 {
-                    descriptionTextBoxes[i].Text = Convert.ToString(startIndex + i + 1);
+                    descriptionTextBoxes[i].Text = Convert.ToString(i + 1);
                     UpdateButtonTextFromDescription(i);
+                }
+                for (int i = 0; i < MaxPages; i++)
+                {
+                    pageDescriptions[i] = "Page " + Convert.ToString(i + 1) + " Description";
                 }
             }
         }
